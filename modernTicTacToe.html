@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animated Tic Tac Toe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-gradient-from: #374151; /* gray-800 */
+      --bg-gradient-via: #1F2937; /* gray-900 */
+      --bg-gradient-to: #000000; /* black */
+      --text-color: #FFFFFF;
+      --h1-color: #FFFFFF;
+      --board-bg: rgba(255, 255, 255, 0.05);
+      --cell-bg: rgba(255, 255, 255, 0.1);
+      --cell-hover-bg: rgba(255, 255, 255, 0.2);
+      --status-text-color: #FFFFFF;
+      --button-text-color: #FFFFFF; /* For icon color */
+      --reset-bg: #DB2777; /* pink-600 */
+      --reset-hover-bg: #BE185D; /* pink-700 */
+      --sound-toggle-bg: #0EA5E9; /* sky-600 */
+      --sound-toggle-hover-bg: #0284C7; /* sky-700 */
+      --theme-toggle-bg: #F97316; /* orange-600 */
+      --theme-toggle-hover-bg: #EA580C; /* orange-700 */
+      --player-x-color: #FF6B6B; /* Light Red */
+      --player-o-color: #4ECDC4; /* Light Teal */
+      --winner-line-bg: rgba(34, 197, 94, 0.6);
+      --winner-line-shadow: rgba(34, 197, 94, 0.8);
+    }
+
+    .light-mode {
+      --bg-gradient-from: #E5E7EB; /* gray-200 */
+      --bg-gradient-via: #D1D5DB; /* gray-300 */
+      --bg-gradient-to: #9CA3AF;   /* gray-400 */
+      --text-color: #1F2937;     /* gray-800 */
+      --h1-color: #111827; /* gray-900 */
+      --board-bg: rgba(0, 0, 0, 0.05);
+      --cell-bg: rgba(0, 0, 0, 0.06);
+      --cell-hover-bg: rgba(0, 0, 0, 0.12);
+      --status-text-color: #1F2937;
+      --button-text-color: #FFFFFF; /* Icons on colored buttons can remain white */
+      --reset-bg: #EC4899; /* pink-500 */
+      --reset-hover-bg: #DB2777; /* pink-600 */
+      --sound-toggle-bg: #38BDF8; /* sky-500 */
+      --sound-toggle-hover-bg: #0EA5E9; /* sky-600 */
+      --theme-toggle-bg: #FB923C; /* orange-500 */
+      --theme-toggle-hover-bg: #F97316; /* orange-600 */
+      --player-x-color: #D90429; /* Darker Red */
+      --player-o-color: #0077B6; /* Darker Blue/Teal */
+      --winner-line-bg: rgba(22, 163, 74, 0.7);
+      --winner-line-shadow: rgba(22, 163, 74, 0.9);
+    }
+
+    body {
+      background-image: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-via), var(--bg-gradient-to));
+      color: var(--text-color);
+      transition: background-image 0.5s ease, color 0.5s ease;
+      padding-top: 80px; /* Add padding to prevent overlap with controls */
+    }
+
+    h1 { color: var(--h1-color); }
+    #status { color: var(--status-text-color); }
+    #board { background-color: var(--board-bg); }
+
+    .cell { background-color: var(--cell-bg); }
+    .cell:hover { background-color: var(--cell-hover-bg) !important; }
+    .player-x { color: var(--player-x-color); }
+    .player-o { color: var(--player-o-color); }
+
+    #reset { background-color: var(--reset-bg); color: var(--button-text-color); }
+    #reset:hover { background-color: var(--reset-hover-bg); }
+    
+    #toggleBgSound, #toggleTheme, #gameVolumeBtn {
+        color: var(--button-text-color);
+    }
+    #toggleBgSound { background-color: var(--sound-toggle-bg); }
+    #toggleBgSound:hover { background-color: var(--sound-toggle-hover-bg); }
+    #toggleTheme { background-color: var(--theme-toggle-bg); }
+    #toggleTheme:hover { background-color: var(--theme-toggle-hover-bg); }
+    #gameVolumeBtn { background-color: var(--theme-toggle-bg); }
+    #gameVolumeBtn:hover { background-color: var(--theme-toggle-hover-bg); }
+
+    #top-controls button svg {
+      display: block; 
+    }
+
+    .winner-line {
+      position: absolute;
+      height: 10px;
+      background: var(--winner-line-bg);
+      border-radius: 9999px;
+      z-index: 20;
+      transform-origin: left;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px var(--winner-line-shadow);
+      animation: growLine 0.4s ease-out forwards;
+    }
+    @keyframes growLine {
+      from { width: 0; }
+      to { width: var(--line-length); }
+    }
+    .hidden { display: none; }
+    
+    /* Volume Slider Styles */
+    .volume-panel {
+      position: absolute;
+      top: 120%; /* Changed from bottom to top to show below button */
+      right: 0;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 200px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transform: translateY(-10px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 50;
+    }
+    
+    .light-mode .volume-panel {
+      background: rgba(255, 255, 255, 0.95);
+      color: #1F2937;
+    }
+    
+    .volume-panel.show {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .volume-panel::before {
+      content: '';
+      position: absolute;
+      bottom: 100%; /* Changed from top to bottom */
+      right: 20px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid rgba(0, 0, 0, 0.9); /* Changed from border-top to border-bottom */
+    }
+    
+    .light-mode .volume-panel::before {
+      border-bottom-color: rgba(255, 255, 255, 0.95);
+    }
+    
+    .volume-slider {
+      /* -webkit-appearance: none; */
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      margin: 8px 0;
+    }
+    
+    .volume-slider::-webkit-slider-thumb {
+      /* -webkit-appearance: none; */
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0EA5E9;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .volume-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0EA5E9;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .volume-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+    
+    .volume-value {
+      font-size: 11px;
+      text-align: center;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative">
+  
+  <div id="top-controls" class="fixed top-4 right-4 flex space-x-3 z-40">
+    <div class="relative">
+      <button id="toggleBgSound" aria-label="Toggle Background Sound" class="p-2.5 transition-all rounded-full shadow-lg hover:shadow-xl flex items-center justify-center">
+        <span id="soundOnIcon" class="hidden">
+          <!-- Sound On Icon - Speaker with sound waves -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0 11.25 11.25 0 010 15.788.75.75 0 11-1.06-1.06 9.75 9.75 0 000-13.668.75.75 0 010-1.06z"/>
+            <path d="M15.932 7.757a.75.75 0 011.061 0 6.5 6.5 0 010 9.185.75.75 0 01-1.06-1.06 5 5 0 000-7.07.75.75 0 010-1.055z"/>
+          </svg>
+        </span>
+        <span id="soundOffIcon">
+          <!-- Sound Off Icon - Speaker with X -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06z"/>
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m17.25 9.75 4.5 4.5m0-4.5-4.5 4.5"/>
+          </svg>
+        </span>
+      </button>
+      
+      <!-- Volume Panel for Background Music -->
+      <div id="bgVolumePanel" class="volume-panel">
+        <div class="volume-label">Background Music</div>
+        <input type="range" id="bgVolumeSlider" class="volume-slider" min="0" max="100" value="30">
+        <div id="bgVolumeValue" class="volume-value">30%</div>
+      </div>
+    </div>
+    
+    <div class="relative">
+      <button id="gameVolumeBtn" aria-label="Game Sound Volume" class="p-2.5 transition-all rounded-full shadow-lg hover:shadow-xl flex items-center justify-center">
+        <!-- Musical Note Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M19.952 1.651a.75.75 0 01.298.599V16.303a3 3 0 01-2.176 2.884l-1.32.211a2.25 2.25 0 11-.671-4.447l1.32-.211a1.5 1.5 0 001.177-1.456V4.638l-9 1.442v9.67a3 3 0 01-2.176 2.884l-1.32.211a2.25 2.25 0 11-.671-4.447l1.32-.211A1.5 1.5 0 007.5 12.731V3a.75.75 0 01.652-.74l11.25-1.75a.75.75 0 01.55.141z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      
+      <!-- Volume Panel for Game Sounds -->
+      <div id="gameVolumePanel" class="volume-panel">
+        <div class="volume-label">Game Sounds</div>
+        <input type="range" id="clickVolumeSlider" class="volume-slider" min="0" max="100" value="70">
+        <div id="clickVolumeValue" class="volume-value">70%</div>
+        <div class="volume-label" style="margin-top: 12px;">Win Sound</div>
+        <input type="range" id="winVolumeSlider" class="volume-slider" min="0" max="100" value="80">
+        <div id="winVolumeValue" class="volume-value">80%</div>
+      </div>
+    </div>
+    
+    <button id="toggleTheme" aria-label="Toggle Theme" class="p-2.5 transition-all rounded-full shadow-lg hover:shadow-xl flex items-center justify-center">
+      <span id="lightModeIcon">
+        <!-- Sun Icon - Light Mode -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+        </svg>
+      </span>
+      <span id="darkModeIcon" class="hidden">
+        <!-- Moon Icon - Dark Mode -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+          <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clip-rule="evenodd"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <h1 class="text-4xl font-extrabold mb-6 tracking-wide">Tic Tac Toe</h1>
+  <div class="relative w-[312px] h-[312px] grid grid-cols-3 grid-rows-3 gap-2 p-1 rounded-2xl backdrop-blur-xl shadow-2xl" id="board">
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+  <div id="status" class="mt-6 text-xl font-medium">Player X's turn</div>
+  <button id="reset" class="mt-4 px-6 py-2 transition-all rounded-xl shadow-xl backdrop-blur-sm">Reset Game</button>
+
+  <audio id="backgroundMusic" loop>
+    <source src="bgm.wav" type="audio/wav">
+    Your browser does not support the audio element.
+  </audio>
+
+  <script>
+    const cells = document.querySelectorAll('.cell');
+    const statusDiv = document.getElementById('status');
+    const resetBtn = document.getElementById('reset');
+    const board = document.getElementById('board');
+    
+    const toggleBgSoundBtn = document.getElementById('toggleBgSound');
+    const soundOnIcon = document.getElementById('soundOnIcon');
+    const soundOffIcon = document.getElementById('soundOffIcon');
+    
+    const toggleThemeBtn = document.getElementById('toggleTheme');
+    const lightModeIcon = document.getElementById('lightModeIcon'); 
+    const darkModeIcon = document.getElementById('darkModeIcon'); 
+    
+    const gameVolumeBtn = document.getElementById('gameVolumeBtn');
+    const bgVolumePanel = document.getElementById('bgVolumePanel');
+    const gameVolumePanel = document.getElementById('gameVolumePanel');
+    const bgVolumeSlider = document.getElementById('bgVolumeSlider');
+    const clickVolumeSlider = document.getElementById('clickVolumeSlider');
+    const winVolumeSlider = document.getElementById('winVolumeSlider');
+    const bgVolumeValue = document.getElementById('bgVolumeValue');
+    const clickVolumeValue = document.getElementById('clickVolumeValue');
+    const winVolumeValue = document.getElementById('winVolumeValue');
+    
+    const backgroundMusic = document.getElementById('backgroundMusic');
+
+    let gameState = Array(9).fill('');
+    let currentPlayer = 'X';
+    let gameActive = true;
+    let isBgSoundPlaying = false;
+
+    const winPatterns = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    const clickSound = new Audio('click.wav');
+    const winSound = new Audio('win.wav');
+    backgroundMusic.volume = 0.3;
+    clickSound.volume = 0.7;
+    winSound.volume = 0.8;
+
+    function updateBoard() {
+      cells.forEach((cell, i) => {
+        cell.textContent = gameState[i];
+        cell.className = `cell flex items-center justify-center text-5xl font-bold cursor-pointer transition-transform duration-200 ease-in-out backdrop-blur-md shadow-lg rounded-xl hover:scale-105`;
+        cell.classList.remove('player-x', 'player-o');
+        if (gameState[i] === 'X') cell.classList.add('player-x');
+        else if (gameState[i] === 'O') cell.classList.add('player-o');
+      });
+    }
+
+    function animateMove(cell) {
+      cell.classList.add('scale-125');
+      setTimeout(() => cell.classList.remove('scale-125'), 200);
+    }
+
+    function drawWinningLine(pattern) {
+      const [a, , c] = pattern;
+      const cellA = cells[a].getBoundingClientRect();
+      const cellC = cells[c].getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const x1 = cellA.left + cellA.width / 2 - boardRect.left;
+      const y1 = cellA.top + cellA.height / 2 - boardRect.top;
+      const x2 = cellC.left + cellC.width / 2 - boardRect.left;
+      const y2 = cellC.top + cellC.height / 2 - boardRect.top;
+      const length = Math.hypot(x2 - x1, y2 - y1);
+      const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+      const line = document.createElement('div');
+      line.className = 'winner-line';
+      line.style.left = `${x1}px`;
+      line.style.top = `${y1}px`;
+      line.style.transform = `rotate(${angle}deg)`;
+      line.style.setProperty('--line-length', `${length}px`);
+      board.appendChild(line);
+    }
+
+    function checkWinnerOrSwitch() {
+      const winnerPattern = winPatterns.find(([a, b, c]) =>
+        gameState[a] && gameState[a] === gameState[b] && gameState[b] === gameState[c]
+      );
+      if (winnerPattern) {
+        drawWinningLine(winnerPattern);
+        statusDiv.textContent = `Player ${currentPlayer} wins! 🎉`;
+        winSound.play().catch(e => console.error("Error playing win sound:", e));
+        gameActive = false;
+        return;
+      }
+      if (!gameState.includes('')) {
+        statusDiv.textContent = "It's a draw! 🤝";
+        gameActive = false;
+        return;
+      }
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      statusDiv.textContent = `Player ${currentPlayer}'s turn`;
+    }
+
+    function handleClick(e) {
+      const index = e.target.closest('.cell')?.dataset.index; 
+      if (index === undefined || !gameActive || gameState[index]) return;
+      gameState[index] = currentPlayer;
+      animateMove(cells[index]);
+      updateBoard();
+      clickSound.play().catch(e => console.error("Error playing click sound:", e));
+      checkWinnerOrSwitch();
+    }
+
+    function resetGame() {
+      gameState = Array(9).fill('');
+      currentPlayer = 'X';
+      gameActive = true;
+      statusDiv.textContent = `Player ${currentPlayer}'s turn`;
+      updateBoard();
+      const line = document.querySelector('.winner-line');
+      if (line) line.remove();
+    }
+
+    function toggleBackgroundSound() {
+      if (isBgSoundPlaying) {
+        backgroundMusic.pause();
+        soundOnIcon.classList.add('hidden');
+        soundOffIcon.classList.remove('hidden');
+        toggleBgSoundBtn.setAttribute('aria-label', 'Turn Background Sound On');
+      } else {
+        backgroundMusic.play().catch(error => console.error("Error playing background music:", error));
+        soundOnIcon.classList.remove('hidden');
+        soundOffIcon.classList.add('hidden');
+        toggleBgSoundBtn.setAttribute('aria-label', 'Turn Background Sound Off');
+      }
+      isBgSoundPlaying = !isBgSoundPlaying;
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      if (document.body.classList.contains('light-mode')) { 
+        lightModeIcon.classList.add('hidden');    
+        darkModeIcon.classList.remove('hidden'); 
+        toggleThemeBtn.setAttribute('aria-label', 'Switch to Dark Mode');
+      } else { 
+        lightModeIcon.classList.remove('hidden'); 
+        darkModeIcon.classList.add('hidden');   
+        toggleThemeBtn.setAttribute('aria-label', 'Switch to Light Mode');
+      }
+    }
+
+    function showVolumePanel(panel) {
+      // Hide all panels first
+      bgVolumePanel.classList.remove('show');
+      gameVolumePanel.classList.remove('show');
+      // Show the requested panel
+      panel.classList.add('show');
+    }
+
+    function hideVolumePanels() {
+      bgVolumePanel.classList.remove('show');
+      gameVolumePanel.classList.remove('show');
+    }
+
+    function updateVolumeDisplay(slider, display, audio) {
+      const value = slider.value;
+      display.textContent = value + '%';
+      if (audio) {
+        audio.volume = value / 100;
+      }
+    }
+    
+    soundOnIcon.classList.add('hidden');
+    soundOffIcon.classList.remove('hidden');
+    toggleBgSoundBtn.setAttribute('aria-label', 'Turn Background Sound On');
+
+    lightModeIcon.classList.remove('hidden');
+    darkModeIcon.classList.add('hidden');
+    toggleThemeBtn.setAttribute('aria-label', 'Switch to Light Mode');
+
+
+    cells.forEach(cell => cell.addEventListener('click', handleClick));
+    resetBtn.addEventListener('click', resetGame);
+    toggleBgSoundBtn.addEventListener('click', toggleBackgroundSound);
+    toggleThemeBtn.addEventListener('click', toggleTheme);
+
+    // Volume panel controls
+    toggleBgSoundBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (bgVolumePanel.classList.contains('show')) {
+        hideVolumePanels();
+      } else {
+        showVolumePanel(bgVolumePanel);
+      }
+    });
+
+    gameVolumeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (gameVolumePanel.classList.contains('show')) {
+        hideVolumePanels();
+      } else {
+        showVolumePanel(gameVolumePanel);
+      }
+    });
+
+    // Volume slider controls
+    bgVolumeSlider.addEventListener('input', () => {
+      updateVolumeDisplay(bgVolumeSlider, bgVolumeValue, backgroundMusic);
+    });
+
+    clickVolumeSlider.addEventListener('input', () => {
+      updateVolumeDisplay(clickVolumeSlider, clickVolumeValue, clickSound);
+    });
+
+    winVolumeSlider.addEventListener('input', () => {
+      updateVolumeDisplay(winVolumeSlider, winVolumeValue, winSound);
+    });
+
+    // Hide panels when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#top-controls')) {
+        hideVolumePanels();
+      }
+    });
+
+    // Prevent panel clicks from closing the panel
+    bgVolumePanel.addEventListener('click', (e) => e.stopPropagation());
+    gameVolumePanel.addEventListener('click', (e) => e.stopPropagation());
+
+    updateBoard();
+  </script>
+</body>
+</html>
